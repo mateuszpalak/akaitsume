@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = '>= 3.2'
 
-  s.files = Dir['lib/**/*', 'bin/*', 'config/**/*', 'README.md', 'LICENSE']
+  s.files = Dir['lib/**/*', 'bin/*', 'config/**/*', 'docs/**/*', 'README.md', 'LICENSE']
   s.executables = ['akaitsume']
 
   s.add_dependency 'anthropic', '>= 0.4'
