@@ -11,7 +11,7 @@ module Akaitsume
       @config   = config
       @provider = provider || Provider::Anthropic.new(api_key: config.api_key)
       @memory   = memory || Memory::FileStore.new(dir: config.memory_dir, agent_name: name)
-      @tools    = tools || Tool::Registry.default_for(config)
+      @tools    = tools || Tool::Registry.default_for(config, memory: @memory)
       @logger   = logger || Logger.new(level: config.log_level)
       @hooks    = { before_tool: [], after_tool: [], on_response: [] }
     end

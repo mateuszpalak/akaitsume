@@ -26,11 +26,14 @@ module Akaitsume
         @tools.keys
       end
 
-      # Default registry with all built-in tools
-      def self.default_for(config)
+      # Default registry with all built-in tools.
+      # Pass memory: to enable the MemoryTool.
+      def self.default_for(config, memory: nil)
         new.tap do |r|
           r.register(Akaitsume::Tool::Bash,  workspace: config.workspace)
           r.register(Akaitsume::Tool::Files, workspace: config.workspace)
+          r.register(Akaitsume::Tool::Http)
+          r.register(Akaitsume::Tool::MemoryTool, memory: memory) if memory
         end
       end
     end

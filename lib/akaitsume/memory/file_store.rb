@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "fileutils"
+
 module Akaitsume
   module Memory
     class FileStore
@@ -9,6 +11,7 @@ module Akaitsume
 
       def initialize(dir:, agent_name: "agent")
         @path = File.join(dir, "#{agent_name}.md")
+        FileUtils.mkdir_p(dir)
         FileUtils.touch(@path) unless File.exist?(@path)
       end
 
