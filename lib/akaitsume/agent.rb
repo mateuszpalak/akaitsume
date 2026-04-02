@@ -2,6 +2,8 @@
 
 module Akaitsume
   class Agent
+    include Hooks
+
     attr_reader :name, :role, :config, :logger
 
     def initialize(name: "akaitsume", role: :orchestrator, config: Config.load,
@@ -13,7 +15,7 @@ module Akaitsume
       @memory   = memory || build_memory(config, name)
       @tools    = tools || Tool::Registry.default_for(config, memory: @memory)
       @logger   = logger || Logger.new(level: config.log_level)
-      @hooks    = { before_tool: [], after_tool: [], on_response: [] }
+      init_hooks
     end
 
     # Spawn a sub-agent with its own tools and memory
@@ -28,11 +30,6 @@ module Akaitsume
         logger:   @logger
       )
     end
-
-    # Register hooks
-    def before_tool(&block) = @hooks[:before_tool] << block
-    def after_tool(&block)  = @hooks[:after_tool] << block
-    def on_response(&block) = @hooks[:on_response] << block
 
     # Run the agent loop.
     # Pass a Session for conversation continuity (chat mode).
@@ -57,11 +54,14 @@ module Akaitsume
           session.add_tool_results(tool_results)
         else
           text = extract_text(response.content)
-          @hooks[:on_response].each { |h| h.call(text) }
+          fire(:on_response, text)
           block&.call(text)
           return text
         end
       end
+    rescue StandardError => e
+      fire(:on_error, e)
+      raise
     end
 
     private
@@ -116,14 +116,14 @@ module Akaitsume
 
         tool = @tools[block.name]
 
-        @hooks[:before_tool].each { |h| h.call(block.name, block.input) }
+        fire(:before_tool, block.name, block.input)
         @logger.debug("tool_call", tool: block.name)
 
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         result = tool.execute(block.input)
         duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
 
-        @hooks[:after_tool].each { |h| h.call(block.name, result) }
+        fire(:after_tool, block.name, result)
         @logger.debug("tool_result", tool: block.name, duration_ms: duration_ms)
 
         {
