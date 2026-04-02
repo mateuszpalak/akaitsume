@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require "fileutils"
+require 'fileutils'
 
 module Akaitsume
   module Memory
     class FileStore
       include Base
 
-      MEMORY_FILE = "MEMORY.md"
+      MEMORY_FILE = 'MEMORY.md'
 
-      def initialize(dir:, agent_name: "agent")
+      def initialize(dir:, agent_name: 'agent')
         @path = File.join(dir, "#{agent_name}.md")
         FileUtils.mkdir_p(dir)
         FileUtils.touch(@path) unless File.exist?(@path)
@@ -23,7 +23,7 @@ module Akaitsume
 
       # Appends a timestamped entry
       def store(entry)
-        File.open(@path, "a") do |f|
+        File.open(@path, 'a') do |f|
           f.puts "\n## #{Time.now.strftime('%Y-%m-%d %H:%M')}\n#{entry.strip}\n"
         end
       end

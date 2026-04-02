@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "json"
-require "time"
+require 'json'
+require 'time'
 
 module Akaitsume
   class Logger
@@ -23,9 +23,9 @@ module Akaitsume
       return if LEVELS[level] < @level
 
       entry = {
-        ts:    Time.now.iso8601,
+        ts: Time.now.iso8601,
         level: level,
-        msg:   message
+        msg: message
       }
       entry.merge!(context) unless context.empty?
 

@@ -6,7 +6,7 @@ module Akaitsume
 
     attr_reader :name, :role, :config, :logger
 
-    def initialize(name: "akaitsume", role: :orchestrator, config: Config.load,
+    def initialize(name: 'akaitsume', role: :orchestrator, config: Config.load,
                    provider: nil, tools: nil, memory: nil, logger: nil)
       @name     = name
       @role     = role
@@ -21,13 +21,13 @@ module Akaitsume
     # Spawn a sub-agent with its own tools and memory
     def spawn(name:, role:, tools: nil)
       self.class.new(
-        name:     name,
-        role:     role,
-        config:   @config,
+        name: name,
+        role: role,
+        config: @config,
         provider: @provider,
-        tools:    tools,
-        memory:   build_memory(@config, name),
-        logger:   @logger
+        tools: tools,
+        memory: build_memory(@config, name),
+        logger: @logger
       )
     end
 
@@ -41,9 +41,7 @@ module Akaitsume
       inject_memory_and_prompt(session, prompt)
 
       loop do
-        if session.turn_count >= @config.max_turns
-          raise MaxTurnsError, "Exceeded max_turns (#{@config.max_turns})"
-        end
+        raise MaxTurnsError, "Exceeded max_turns (#{@config.max_turns})" if session.turn_count >= @config.max_turns
 
         response = call_provider(sys, session)
         session.add_assistant(response.content)
@@ -68,7 +66,7 @@ module Akaitsume
 
     def build_memory(config, agent_name)
       case config.memory_backend
-      when "sqlite"
+      when 'sqlite'
         Memory::SqliteStore.new(db_path: config.db_path, agent_name: agent_name)
       else
         Memory::FileStore.new(dir: config.memory_dir, agent_name: agent_name)
@@ -85,19 +83,19 @@ module Akaitsume
     end
 
     def call_provider(sys, session)
-      @logger.debug("api_call", model: @config.model, messages: session.messages.size)
+      @logger.debug('api_call', model: @config.model, messages: session.messages.size)
 
       response = @provider.chat(
-        model:      @config.model,
+        model: @config.model,
         max_tokens: @config.max_tokens,
-        system:     sys,
-        tools:      @tools.api_definitions,
-        messages:   session.messages
+        system: sys,
+        tools: @tools.api_definitions,
+        messages: session.messages
       )
 
-      @logger.info("api_response",
-                   stop_reason:   response.stop_reason,
-                   input_tokens:  response.input_tokens,
+      @logger.info('api_response',
+                   stop_reason: response.stop_reason,
+                   input_tokens: response.input_tokens,
                    output_tokens: response.output_tokens)
 
       response
@@ -105,38 +103,38 @@ module Akaitsume
 
     def default_system_prompt
       parts = ["You are #{@name}, a #{@role} AI agent."]
-      parts << "You can delegate tasks to sub-agents." if @role == :orchestrator
-      parts << "Be concise, precise, and always complete your task."
+      parts << 'You can delegate tasks to sub-agents.' if @role == :orchestrator
+      parts << 'Be concise, precise, and always complete your task.'
       parts.join("\n")
     end
 
     def dispatch_tools(content_blocks)
       content_blocks.filter_map do |block|
-        next unless block.type == "tool_use"
+        next unless block.type == 'tool_use'
 
         tool = @tools[block.name]
 
         fire(:before_tool, block.name, block.input)
-        @logger.debug("tool_call", tool: block.name)
+        @logger.debug('tool_call', tool: block.name)
 
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         result = tool.execute(block.input)
         duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
 
         fire(:after_tool, block.name, result)
-        @logger.debug("tool_result", tool: block.name, duration_ms: duration_ms)
+        @logger.debug('tool_result', tool: block.name, duration_ms: duration_ms)
 
         {
-          type:        "tool_result",
+          type: 'tool_result',
           tool_use_id: block.id,
-          content:     [result]
+          content: [result]
         }
       end
     end
 
     def extract_text(content_blocks)
       content_blocks
-        .select { |b| b.type == "text" }
+        .select { |b| b.type == 'text' }
         .map(&:text)
         .join
     end

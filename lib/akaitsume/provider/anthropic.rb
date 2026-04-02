@@ -5,7 +5,7 @@ module Akaitsume
     class Anthropic
       include Base
 
-      provider_name "anthropic"
+      provider_name 'anthropic'
 
       def initialize(api_key:)
         @client = ::Anthropic::Client.new(api_key: api_key)
@@ -13,19 +13,19 @@ module Akaitsume
 
       def chat(messages:, system:, tools:, model:, max_tokens:)
         raw = @client.messages(
-          model:      model,
+          model: model,
           max_tokens: max_tokens,
-          system:     system,
-          tools:      tools,
-          messages:   messages
+          system: system,
+          tools: tools,
+          messages: messages
         )
 
         Response.new(
-          content:     raw.content,
+          content: raw.content,
           stop_reason: raw.stop_reason,
-          model:       raw.model,
+          model: raw.model,
           usage: {
-            input_tokens:  raw.usage.input_tokens,
+            input_tokens: raw.usage.input_tokens,
             output_tokens: raw.usage.output_tokens
           }
         )

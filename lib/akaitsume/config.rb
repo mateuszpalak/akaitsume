@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-require "yaml"
-require "fileutils"
+require 'yaml'
+require 'fileutils'
 
 module Akaitsume
   class Config
     DEFAULTS = {
-      model:          "claude-opus-4-6",
-      max_turns:      20,
-      max_tokens:     8096,
-      workspace:      Dir.home + "/.akaitsume/workspace",
-      memory_dir:     Dir.home + "/.akaitsume/memory",
-      memory_backend: "file",
-      db_path:        Dir.home + "/.akaitsume/akaitsume.db",
-      log_level:      "info"
+      model: 'claude-opus-4-6',
+      max_turns: 20,
+      max_tokens: 8096,
+      workspace: Dir.home + '/.akaitsume/workspace',
+      memory_dir: Dir.home + '/.akaitsume/memory',
+      memory_backend: 'file',
+      db_path: Dir.home + '/.akaitsume/akaitsume.db',
+      log_level: 'info'
     }.freeze
 
     attr_reader :model, :max_turns, :max_tokens, :workspace,
@@ -26,7 +26,7 @@ module Akaitsume
 
     def initialize(overrides = {})
       cfg = DEFAULTS.merge(overrides)
-      @api_key        = ENV.fetch("ANTHROPIC_API_KEY") { raise ConfigError, "ANTHROPIC_API_KEY not set" }
+      @api_key        = ENV.fetch('ANTHROPIC_API_KEY') { raise ConfigError, 'ANTHROPIC_API_KEY not set' }
       @model          = cfg[:model]
       @max_turns      = cfg[:max_turns].to_i
       @max_tokens     = cfg[:max_tokens].to_i

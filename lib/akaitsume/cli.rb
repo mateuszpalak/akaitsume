@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require "thor"
+require 'thor'
 
 module Akaitsume
   class CLI < Thor
-    class_option :config, type: :string, desc: "Path to config YAML file"
+    class_option :config, type: :string, desc: 'Path to config YAML file'
 
-    desc "run PROMPT", "Run agent with a single prompt"
-    method_option :model, type: :string, desc: "Override model name"
+    desc 'run PROMPT', 'Run agent with a single prompt'
+    method_option :model, type: :string, desc: 'Override model name'
     def run_task(prompt)
       agent = build_agent
       agent.before_tool { |name, input| say "  \u2192 [#{name}] #{input.inspect}", :cyan }
@@ -17,9 +17,9 @@ module Akaitsume
       result = agent.run(prompt)
       say result
     end
-    map "run" => :run_task
+    map 'run' => :run_task
 
-    desc "chat", "Interactive chat mode"
+    desc 'chat', 'Interactive chat mode'
     def chat
       agent   = build_agent
       session = Session.new
@@ -30,9 +30,9 @@ module Akaitsume
       say "\xF0\x9F\x94\xB4 akaitsume chat (Ctrl+C or 'exit' to quit)\n\n"
 
       loop do
-        print "> "
+        print '> '
         input = $stdin.gets&.chomp
-        break if input.nil? || input == "exit"
+        break if input.nil? || input == 'exit'
         next  if input.empty?
 
         result = agent.run(input, session: session)
@@ -44,7 +44,7 @@ module Akaitsume
       say "\n\nSession: #{session.turn_count} turns, #{session.total_tokens} tokens"
     end
 
-    desc "tools", "List registered tools"
+    desc 'tools', 'List registered tools'
     def tools
       cfg      = load_config
       memory   = build_memory(cfg)
@@ -53,19 +53,19 @@ module Akaitsume
       registry.names.each { |n| say "  \u2022 #{n}" }
     end
 
-    desc "memory SUBCOMMAND", "Memory operations"
-    subcommand "memory", Class.new(Thor) {
-      namespace "memory"
+    desc 'memory SUBCOMMAND', 'Memory operations'
+    subcommand 'memory', Class.new(Thor) {
+      namespace 'memory'
 
-      desc "show [AGENT]", "Show agent memory"
-      def show(agent_name = "akaitsume")
+      desc 'show [AGENT]', 'Show agent memory'
+      def show(agent_name = 'akaitsume')
         cfg   = parent_load_config
         store = parent_build_memory(cfg, agent_name)
-        say store.read || "(empty)"
+        say store.read || '(empty)'
       end
 
-      desc "search QUERY [AGENT]", "Search agent memory"
-      def search(query, agent_name = "akaitsume")
+      desc 'search QUERY [AGENT]', 'Search agent memory'
+      def search(query, agent_name = 'akaitsume')
         cfg   = parent_load_config
         store = parent_build_memory(cfg, agent_name)
         say store.search(query)
@@ -77,9 +77,9 @@ module Akaitsume
           path ? Config.load(path: path) : Config.load
         end
 
-        def parent_build_memory(cfg, agent_name = "akaitsume")
+        def parent_build_memory(cfg, agent_name = 'akaitsume')
           case cfg.memory_backend
-          when "sqlite"
+          when 'sqlite'
             Memory::SqliteStore.new(db_path: cfg.db_path, agent_name: agent_name)
           else
             Memory::FileStore.new(dir: cfg.memory_dir, agent_name: agent_name)
@@ -101,9 +101,9 @@ module Akaitsume
         end
       end
 
-      def build_memory(cfg, agent_name = "akaitsume")
+      def build_memory(cfg, agent_name = 'akaitsume')
         case cfg.memory_backend
-        when "sqlite"
+        when 'sqlite'
           Memory::SqliteStore.new(db_path: cfg.db_path, agent_name: agent_name)
         else
           Memory::FileStore.new(dir: cfg.memory_dir, agent_name: agent_name)
@@ -111,7 +111,7 @@ module Akaitsume
       end
 
       def build_agent
-        cfg    = load_config
+        cfg = load_config
         Agent.new(config: cfg)
       end
     end

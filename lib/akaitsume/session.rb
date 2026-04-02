@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "securerandom"
+require 'securerandom'
 
 module Akaitsume
   class Session
@@ -14,16 +14,16 @@ module Akaitsume
     end
 
     def add_user(content)
-      @messages << { role: "user", content: content }
+      @messages << { role: 'user', content: content }
     end
 
     def add_assistant(content)
-      @messages << { role: "assistant", content: content }
+      @messages << { role: 'assistant', content: content }
       @metadata[:turns] += 1
     end
 
     def add_tool_results(results)
-      @messages << { role: "user", content: results }
+      @messages << { role: 'user', content: results }
     end
 
     def track_usage(response)

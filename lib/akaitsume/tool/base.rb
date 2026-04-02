@@ -20,14 +20,14 @@ module Akaitsume
 
         def input_schema(schema = nil)
           @input_schema = schema if schema
-          @input_schema || { type: "object", properties: {}, required: [] }
+          @input_schema || { type: 'object', properties: {}, required: [] }
         end
 
         # Returns the tool definition hash for Anthropic API
         def to_api_definition
           {
-            name:         tool_name,
-            description:  description,
+            name: tool_name,
+            description: description,
             input_schema: input_schema
           }
         end
@@ -41,9 +41,9 @@ module Akaitsume
       # Wraps result into Anthropic tool_result content format
       def execute(input)
         result = call(input)
-        { type: "text", text: result.to_s }
+        { type: 'text', text: result.to_s }
       rescue StandardError => e
-        { type: "text", text: "Error: #{e.message}" }
+        { type: 'text', text: "Error: #{e.message}" }
       end
     end
   end
