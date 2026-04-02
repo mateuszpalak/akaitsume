@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative "../lib/akaitsume"
+
+command = ARGV.shift
+
+case command
+when "run"
+  prompt = ARGV.join(" ")
+  abort "Usage: akaitsume run <prompt>" if prompt.empty?
+
+  agent = Akaitsume::Agent.new
+  agent.before_tool { |name, input| puts "  → [tool] #{name}: #{input.inspect}" }
+  agent.after_tool  { |name, result| puts "  ← [tool] #{name}: #{result[:text].to_s[0..120]}" }
+
+  puts "\n🔴 akaitsume\n\n"
+  result = agent.run(prompt)
+  puts result
+
+when "chat"
+  agent = Akaitsume::Agent.new
+  puts "🔴 akaitsume chat (Ctrl+C to exit)\n\n"
+
+  loop do
+    print "> "
+    input = $stdin.gets&.chomp
+    break if input.nil? || input == "exit"
+    next  if input.empty?
+
+    result = agent.run(input)
+    puts "\n#{result}\n\n"
+  end
+
+when "memory"
+  subcommand = ARGV.shift
+  agent_name = ARGV.shift || "akaitsume"
+  cfg        = Akaitsume::Config.load
+  store      = Akaitsume::Memory::FileStore.new(dir: cfg.memory_dir, agent_name: agent_name)
+
+  case subcommand
+  when "show"   then puts store.read || "(empty)"
+  when "search" then puts store.search(ARGV.join(" "))
+  else abort "Usage: akaitsume memory [show|search] [agent_name]"
+  end
+
+when "tools"
+  cfg      = Akaitsume::Config.load
+  registry = Akaitsume::Tool::Registry.default_for(cfg)
+  registry.names.each { |n| puts "  • #{n}" }
+
+else
+  puts <<~USAGE
+    Usage: akaitsume <command> [args]
+
+    Commands:
+      run <prompt>              Run agent with a single prompt
+      chat                      Interactive chat mode
+      memory show [agent]       Show agent memory
+      memory search <q> [agent] Search agent memory
+      tools                     List registered tools
+  USAGE
+end
+
