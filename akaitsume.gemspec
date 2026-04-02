@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   s.add_dependency "base64"
   s.add_dependency "faraday",    ">= 2.0"
   s.add_dependency "sqlite3",    ">= 2.0"
+  s.add_dependency "thor",       ">= 1.0"
   s.add_dependency "zeitwerk",   ">= 2.6"
 
   s.add_development_dependency "rspec", ">= 3.12"
