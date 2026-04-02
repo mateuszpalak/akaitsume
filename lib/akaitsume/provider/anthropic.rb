@@ -12,13 +12,15 @@ module Akaitsume
       end
 
       def chat(messages:, system:, tools:, model:, max_tokens:)
-        raw = @client.messages(
+        params = {
           model: model,
           max_tokens: max_tokens,
           system: system,
-          tools: tools,
           messages: messages
-        )
+        }
+        params[:tools] = tools if tools && !tools.empty?
+
+        raw = @client.messages.create(**params)
 
         Response.new(
           content: raw.content,

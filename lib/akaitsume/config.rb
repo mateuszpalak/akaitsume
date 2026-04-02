@@ -6,7 +6,7 @@ require 'fileutils'
 module Akaitsume
   class Config
     DEFAULTS = {
-      model: 'claude-opus-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_turns: 20,
       max_tokens: 8096,
       workspace: Dir.home + '/.akaitsume/workspace',

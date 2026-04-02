@@ -13,7 +13,7 @@ module Akaitsume
       end
 
       def tool_use?
-        stop_reason == 'tool_use'
+        stop_reason == :tool_use
       end
 
       def input_tokens

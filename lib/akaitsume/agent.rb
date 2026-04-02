@@ -110,7 +110,7 @@ module Akaitsume
 
     def dispatch_tools(content_blocks)
       content_blocks.filter_map do |block|
-        next unless block.type == 'tool_use'
+        next unless block.type == :tool_use
 
         tool = @tools[block.name]
 
@@ -134,7 +134,7 @@ module Akaitsume
 
     def extract_text(content_blocks)
       content_blocks
-        .select { |b| b.type == 'text' }
+        .select { |b| b.type == :text }
         .map(&:text)
         .join
     end
