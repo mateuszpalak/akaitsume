@@ -22,10 +22,6 @@ module Akaitsume
         @tools.values.map { |e| e[:klass].to_api_definition }
       end
 
-      def api_definitions
-        @tools.values.map(&:to_api_definition)
-      end
-
       def names
         @tools.keys
       end

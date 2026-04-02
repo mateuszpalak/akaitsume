@@ -4,24 +4,25 @@ module Akaitsume
   class Agent
     attr_reader :name, :role, :config
 
-    def initialize(name: "akaitsume", role: :orchestrator, config: Config.load, tools: nil, memory: nil)
-      @name    = name
-      @role    = role
-      @config  = config
-      @tools   = tools || Tool::Registry.default_for(config)
-      @memory  = memory || Memory::FileStore.new(dir: config.memory_dir, agent_name: name)
-      @client  = Anthropic::Client.new(api_key: config.api_key)
-      @hooks   = { before_tool: [], after_tool: [], on_response: [] }
+    def initialize(name: "akaitsume", role: :orchestrator, config: Config.load, provider: nil, tools: nil, memory: nil)
+      @name     = name
+      @role     = role
+      @config   = config
+      @provider = provider || Provider::Anthropic.new(api_key: config.api_key)
+      @memory   = memory || Memory::FileStore.new(dir: config.memory_dir, agent_name: name)
+      @tools    = tools || Tool::Registry.default_for(config)
+      @hooks    = { before_tool: [], after_tool: [], on_response: [] }
     end
 
-    # Spawn a sub-agent with a subset of tools and its own memory
+    # Spawn a sub-agent with its own tools and memory
     def spawn(name:, role:, tools: nil)
       self.class.new(
-        name:   name,
-        role:   role,
-        config: @config,
-        tools:  tools,
-        memory: Memory::FileStore.new(dir: @config.memory_dir, agent_name: name)
+        name:     name,
+        role:     role,
+        config:   @config,
+        provider: @provider,
+        tools:    tools,
+        memory:   Memory::FileStore.new(dir: @config.memory_dir, agent_name: name)
       )
     end
 
@@ -30,8 +31,8 @@ module Akaitsume
     def after_tool(&block)  = @hooks[:after_tool] << block
     def on_response(&block) = @hooks[:on_response] << block
 
-    # Run the agent loop
-    # Yields each text response chunk if block given, returns final text otherwise
+    # Run the agent loop.
+    # Yields final text response if block given, returns it otherwise.
     def run(prompt, system: nil, &block)
       messages = build_initial_messages(prompt)
       sys      = system || default_system_prompt
@@ -41,7 +42,7 @@ module Akaitsume
         raise MaxTurnsError, "Exceeded max_turns (#{@config.max_turns})" if turns >= @config.max_turns
         turns += 1
 
-        response = @client.messages(
+        response = @provider.chat(
           model:      @config.model,
           max_tokens: @config.max_tokens,
           system:     sys,
@@ -52,11 +53,10 @@ module Akaitsume
         # Append assistant message
         messages << { role: "assistant", content: response.content }
 
-        if response.stop_reason == "tool_use"
+        if response.tool_use?
           tool_results = dispatch_tools(response.content)
           messages << { role: "user", content: tool_results }
         else
-          # Final text response
           text = extract_text(response.content)
           @hooks[:on_response].each { |h| h.call(text) }
           block ? block.call(text) : (return text)
@@ -68,13 +68,11 @@ module Akaitsume
     private
 
     def build_initial_messages(prompt)
-      msgs = []
       if (mem = @memory.read)
-        msgs << { role: "user",      content: "<memory>\n#{mem}\n</memory>\n\n#{prompt}" }
+        [{ role: "user", content: "<memory>\n#{mem}\n</memory>\n\n#{prompt}" }]
       else
-        msgs << { role: "user", content: prompt }
+        [{ role: "user", content: prompt }]
       end
-      msgs
     end
 
     def default_system_prompt

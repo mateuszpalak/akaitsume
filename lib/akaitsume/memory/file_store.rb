@@ -3,6 +3,8 @@
 module Akaitsume
   module Memory
     class FileStore
+      include Base
+
       MEMORY_FILE = "MEMORY.md"
 
       def initialize(dir:, agent_name: "agent")

@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
   s.executables = ["akaitsume"]
 
   s.add_dependency "anthropic",  ">= 0.4"
+  s.add_dependency "base64"
   s.add_dependency "zeitwerk",   ">= 2.6"
 
   s.add_development_dependency "rspec", ">= 3.12"
