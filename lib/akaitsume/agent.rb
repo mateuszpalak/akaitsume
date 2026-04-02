@@ -10,7 +10,7 @@ module Akaitsume
       @role     = role
       @config   = config
       @provider = provider || Provider::Anthropic.new(api_key: config.api_key)
-      @memory   = memory || Memory::FileStore.new(dir: config.memory_dir, agent_name: name)
+      @memory   = memory || build_memory(config, name)
       @tools    = tools || Tool::Registry.default_for(config, memory: @memory)
       @logger   = logger || Logger.new(level: config.log_level)
       @hooks    = { before_tool: [], after_tool: [], on_response: [] }
@@ -24,7 +24,7 @@ module Akaitsume
         config:   @config,
         provider: @provider,
         tools:    tools,
-        memory:   Memory::FileStore.new(dir: @config.memory_dir, agent_name: name),
+        memory:   build_memory(@config, name),
         logger:   @logger
       )
     end
@@ -65,6 +65,15 @@ module Akaitsume
     end
 
     private
+
+    def build_memory(config, agent_name)
+      case config.memory_backend
+      when "sqlite"
+        Memory::SqliteStore.new(db_path: config.db_path, agent_name: agent_name)
+      else
+        Memory::FileStore.new(dir: config.memory_dir, agent_name: agent_name)
+      end
+    end
 
     def inject_memory_and_prompt(session, prompt)
       content = if (mem = @memory.read)
