@@ -2,15 +2,17 @@
 
 module Akaitsume
   class Agent
-    attr_reader :name, :role, :config
+    attr_reader :name, :role, :config, :logger
 
-    def initialize(name: "akaitsume", role: :orchestrator, config: Config.load, provider: nil, tools: nil, memory: nil)
+    def initialize(name: "akaitsume", role: :orchestrator, config: Config.load,
+                   provider: nil, tools: nil, memory: nil, logger: nil)
       @name     = name
       @role     = role
       @config   = config
       @provider = provider || Provider::Anthropic.new(api_key: config.api_key)
       @memory   = memory || Memory::FileStore.new(dir: config.memory_dir, agent_name: name)
       @tools    = tools || Tool::Registry.default_for(config)
+      @logger   = logger || Logger.new(level: config.log_level)
       @hooks    = { before_tool: [], after_tool: [], on_response: [] }
     end
 
@@ -22,7 +24,8 @@ module Akaitsume
         config:   @config,
         provider: @provider,
         tools:    tools,
-        memory:   Memory::FileStore.new(dir: @config.memory_dir, agent_name: name)
+        memory:   Memory::FileStore.new(dir: @config.memory_dir, agent_name: name),
+        logger:   @logger
       )
     end
 
@@ -32,34 +35,30 @@ module Akaitsume
     def on_response(&block) = @hooks[:on_response] << block
 
     # Run the agent loop.
-    # Yields final text response if block given, returns it otherwise.
-    def run(prompt, system: nil, &block)
-      messages = build_initial_messages(prompt)
-      sys      = system || default_system_prompt
-      turns    = 0
+    # Pass a Session for conversation continuity (chat mode).
+    # Without a session, creates a temporary one for this single run.
+    def run(prompt, system: nil, session: nil, &block)
+      session ||= Session.new(system_prompt: system || default_system_prompt)
+      sys = session.system_prompt || system || default_system_prompt
+
+      inject_memory_and_prompt(session, prompt)
 
       loop do
-        raise MaxTurnsError, "Exceeded max_turns (#{@config.max_turns})" if turns >= @config.max_turns
-        turns += 1
+        if session.turn_count >= @config.max_turns
+          raise MaxTurnsError, "Exceeded max_turns (#{@config.max_turns})"
+        end
 
-        response = @provider.chat(
-          model:      @config.model,
-          max_tokens: @config.max_tokens,
-          system:     sys,
-          tools:      @tools.api_definitions,
-          messages:   messages
-        )
-
-        # Append assistant message
-        messages << { role: "assistant", content: response.content }
+        response = call_provider(sys, session)
+        session.add_assistant(response.content)
+        session.track_usage(response)
 
         if response.tool_use?
           tool_results = dispatch_tools(response.content)
-          messages << { role: "user", content: tool_results }
+          session.add_tool_results(tool_results)
         else
           text = extract_text(response.content)
           @hooks[:on_response].each { |h| h.call(text) }
-          block ? block.call(text) : (return text)
+          block&.call(text)
           return text
         end
       end
@@ -67,12 +66,32 @@ module Akaitsume
 
     private
 
-    def build_initial_messages(prompt)
-      if (mem = @memory.read)
-        [{ role: "user", content: "<memory>\n#{mem}\n</memory>\n\n#{prompt}" }]
-      else
-        [{ role: "user", content: prompt }]
-      end
+    def inject_memory_and_prompt(session, prompt)
+      content = if (mem = @memory.read)
+                  "<memory>\n#{mem}\n</memory>\n\n#{prompt}"
+                else
+                  prompt
+                end
+      session.add_user(content)
+    end
+
+    def call_provider(sys, session)
+      @logger.debug("api_call", model: @config.model, messages: session.messages.size)
+
+      response = @provider.chat(
+        model:      @config.model,
+        max_tokens: @config.max_tokens,
+        system:     sys,
+        tools:      @tools.api_definitions,
+        messages:   session.messages
+      )
+
+      @logger.info("api_response",
+                   stop_reason:   response.stop_reason,
+                   input_tokens:  response.input_tokens,
+                   output_tokens: response.output_tokens)
+
+      response
     end
 
     def default_system_prompt
@@ -89,8 +108,14 @@ module Akaitsume
         tool = @tools[block.name]
 
         @hooks[:before_tool].each { |h| h.call(block.name, block.input) }
+        @logger.debug("tool_call", tool: block.name)
+
+        t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         result = tool.execute(block.input)
-        @hooks[:after_tool].each  { |h| h.call(block.name, result) }
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
+
+        @hooks[:after_tool].each { |h| h.call(block.name, result) }
+        @logger.debug("tool_result", tool: block.name, duration_ms: duration_ms)
 
         {
           type:        "tool_result",

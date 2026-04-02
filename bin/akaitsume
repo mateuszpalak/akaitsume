@@ -11,16 +11,21 @@ when "run"
   abort "Usage: akaitsume run <prompt>" if prompt.empty?
 
   agent = Akaitsume::Agent.new
-  agent.before_tool { |name, input| puts "  → [tool] #{name}: #{input.inspect}" }
-  agent.after_tool  { |name, result| puts "  ← [tool] #{name}: #{result[:text].to_s[0..120]}" }
+  agent.before_tool { |name, input| puts "  \u2192 [tool] #{name}: #{input.inspect}" }
+  agent.after_tool  { |name, result| puts "  \u2190 [tool] #{name}: #{result[:text].to_s[0..120]}" }
 
-  puts "\n🔴 akaitsume\n\n"
+  puts "\n\xF0\x9F\x94\xB4 akaitsume\n\n"
   result = agent.run(prompt)
   puts result
 
 when "chat"
-  agent = Akaitsume::Agent.new
-  puts "🔴 akaitsume chat (Ctrl+C to exit)\n\n"
+  agent   = Akaitsume::Agent.new
+  session = Akaitsume::Session.new(system_prompt: nil)
+
+  agent.before_tool { |name, _input| print "  \u2192 [#{name}] " }
+  agent.after_tool  { |name, _result| puts "\u2190 [#{name}]" }
+
+  puts "\xF0\x9F\x94\xB4 akaitsume chat (Ctrl+C to exit)\n\n"
 
   loop do
     print "> "
@@ -28,9 +33,11 @@ when "chat"
     break if input.nil? || input == "exit"
     next  if input.empty?
 
-    result = agent.run(input)
+    result = agent.run(input, session: session)
     puts "\n#{result}\n\n"
   end
+
+  puts "\nSession: #{session.turn_count} turns, #{session.total_tokens} tokens"
 
 when "memory"
   subcommand = ARGV.shift
@@ -47,7 +54,7 @@ when "memory"
 when "tools"
   cfg      = Akaitsume::Config.load
   registry = Akaitsume::Tool::Registry.default_for(cfg)
-  registry.names.each { |n| puts "  • #{n}" }
+  registry.names.each { |n| puts "  \u2022 #{n}" }
 
 else
   puts <<~USAGE
@@ -61,4 +68,3 @@ else
       tools                     List registered tools
   USAGE
 end
-
