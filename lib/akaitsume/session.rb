@@ -19,6 +19,9 @@ module Akaitsume
 
     def add_assistant(content)
       @messages << { role: 'assistant', content: content }
+    end
+
+    def increment_turn
       @metadata[:turns] += 1
     end
 

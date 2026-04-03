@@ -15,7 +15,7 @@ module Akaitsume
 
       def [](name)
         entry = @tools[name] || raise(ToolNotFoundError, "Tool '#{name}' not registered")
-        entry[:klass].new(**entry[:init_args])
+        entry[:instance] ||= entry[:klass].new(**entry[:init_args])
       end
 
       def api_definitions

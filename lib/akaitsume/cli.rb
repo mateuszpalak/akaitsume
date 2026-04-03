@@ -47,7 +47,7 @@ module Akaitsume
     desc 'tools', 'List registered tools'
     def tools
       cfg      = load_config
-      memory   = build_memory(cfg)
+      memory   = Memory.build(cfg)
       registry = Tool::Registry.default_for(cfg, memory: memory)
 
       registry.names.each { |n| say "  \u2022 #{n}" }
@@ -60,14 +60,14 @@ module Akaitsume
       desc 'show [AGENT]', 'Show agent memory'
       def show(agent_name = 'akaitsume')
         cfg   = parent_load_config
-        store = parent_build_memory(cfg, agent_name)
+        store = Memory.build(cfg, agent_name: agent_name)
         say store.read || '(empty)'
       end
 
       desc 'search QUERY [AGENT]', 'Search agent memory'
       def search(query, agent_name = 'akaitsume')
         cfg   = parent_load_config
-        store = parent_build_memory(cfg, agent_name)
+        store = Memory.build(cfg, agent_name: agent_name)
         say store.search(query)
       end
 
@@ -75,15 +75,6 @@ module Akaitsume
         def parent_load_config
           path = parent_options[:config]
           path ? Config.load(path: path) : Config.load
-        end
-
-        def parent_build_memory(cfg, agent_name = 'akaitsume')
-          case cfg.memory_backend
-          when 'sqlite'
-            Memory::SqliteStore.new(db_path: cfg.db_path, agent_name: agent_name)
-          else
-            Memory::FileStore.new(dir: cfg.memory_dir, agent_name: agent_name)
-          end
         end
       end
     }
@@ -98,15 +89,6 @@ module Akaitsume
           Config.load(path: path)
         else
           Config.new(cfg_hash)
-        end
-      end
-
-      def build_memory(cfg, agent_name = 'akaitsume')
-        case cfg.memory_backend
-        when 'sqlite'
-          Memory::SqliteStore.new(db_path: cfg.db_path, agent_name: agent_name)
-        else
-          Memory::FileStore.new(dir: cfg.memory_dir, agent_name: agent_name)
         end
       end
 

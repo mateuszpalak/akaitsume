@@ -7,8 +7,6 @@ module Akaitsume
     class FileStore
       include Base
 
-      MEMORY_FILE = 'MEMORY.md'
-
       def initialize(dir:, agent_name: 'agent')
         @path = File.join(dir, "#{agent_name}.md")
         FileUtils.mkdir_p(dir)

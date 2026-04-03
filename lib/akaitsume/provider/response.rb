@@ -2,14 +2,9 @@
 
 module Akaitsume
   module Provider
-    class Response
-      attr_reader :content, :stop_reason, :model, :usage
-
+    Response = Data.define(:content, :stop_reason, :model, :usage) do
       def initialize(content:, stop_reason:, model:, usage: {})
-        @content     = content
-        @stop_reason = stop_reason
-        @model       = model
-        @usage       = usage
+        super(content: content, stop_reason: stop_reason, model: model, usage: usage)
       end
 
       def tool_use?

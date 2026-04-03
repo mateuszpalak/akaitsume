@@ -12,10 +12,9 @@ module Akaitsume
       @role     = role
       @config   = config
       @provider = provider || Provider::Anthropic.new(api_key: config.api_key)
-      @memory   = memory || build_memory(config, name)
+      @memory   = memory || Memory.build(config, agent_name: name)
       @tools    = tools || Tool::Registry.default_for(config, memory: @memory)
       @logger   = logger || Logger.new(level: config.log_level)
-      init_hooks
     end
 
     # Spawn a sub-agent with its own tools and memory
@@ -26,7 +25,7 @@ module Akaitsume
         config: @config,
         provider: @provider,
         tools: tools,
-        memory: build_memory(@config, name),
+        memory: Memory.build(@config, agent_name: name),
         logger: @logger
       )
     end
@@ -43,19 +42,17 @@ module Akaitsume
       loop do
         raise MaxTurnsError, "Exceeded max_turns (#{@config.max_turns})" if session.turn_count >= @config.max_turns
 
+        session.increment_turn
         response = call_provider(sys, session)
         session.add_assistant(response.content)
         session.track_usage(response)
 
-        if response.tool_use?
-          tool_results = dispatch_tools(response.content)
-          session.add_tool_results(tool_results)
-        else
-          text = extract_text(response.content)
-          fire(:on_response, text)
-          block&.call(text)
-          return text
-        end
+        next dispatch_tool_cycle(response, session) if response.tool_use?
+
+        text = extract_text(response.content)
+        fire(:on_response, text)
+        block&.call(text)
+        return text
       end
     rescue StandardError => e
       fire(:on_error, e)
@@ -64,13 +61,9 @@ module Akaitsume
 
     private
 
-    def build_memory(config, agent_name)
-      case config.memory_backend
-      when 'sqlite'
-        Memory::SqliteStore.new(db_path: config.db_path, agent_name: agent_name)
-      else
-        Memory::FileStore.new(dir: config.memory_dir, agent_name: agent_name)
-      end
+    def dispatch_tool_cycle(response, session)
+      tool_results = dispatch_tools(response.content)
+      session.add_tool_results(tool_results)
     end
 
     def inject_memory_and_prompt(session, prompt)
