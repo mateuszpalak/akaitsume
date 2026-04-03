@@ -38,10 +38,10 @@ module Akaitsume
       end
 
       def call(input)
-        action  = input['action'] || input[:action]
-        path    = input['path']   || input[:path]
-        content = input['content'] || input[:content]
-        pattern = input['pattern'] || input[:pattern] || '**/*'
+        action  = input['action']
+        path    = input['path']
+        content = input['content']
+        pattern = input['pattern'] || '**/*'
 
         case action
         when 'read'   then read(path)

@@ -38,9 +38,10 @@ module Akaitsume
         raise NotImplementedError, "#{self.class}#call not implemented"
       end
 
-      # Wraps result into Anthropic tool_result content format
+      # Normalizes input keys to strings and wraps result into Anthropic tool_result content format
       def execute(input)
-        result = call(input)
+        normalized = input.is_a?(Hash) ? input.transform_keys(&:to_s) : input
+        result = call(normalized)
         { type: 'text', text: result.to_s }
       rescue StandardError => e
         { type: 'text', text: "Error: #{e.message}" }

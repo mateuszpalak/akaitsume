@@ -36,30 +36,25 @@ module Akaitsume
       end
 
       def call(input)
-        action = input['action'] || input[:action]
-
-        case action
+        case input['action']
         when 'read'
           @memory.read || '(empty memory)'
         when 'store'
-          content = input['content'] || input[:content]
-          return 'Error: content is required for store' unless content
+          return 'Error: content is required for store' unless input['content']
 
-          @memory.store(content)
+          @memory.store(input['content'])
           'Stored to memory.'
         when 'search'
-          query = input['query'] || input[:query]
-          return 'Error: query is required for search' unless query
+          return 'Error: query is required for search' unless input['query']
 
-          @memory.search(query)
+          @memory.search(input['query'])
         when 'replace'
-          content = input['content'] || input[:content]
-          return 'Error: content is required for replace' unless content
+          return 'Error: content is required for replace' unless input['content']
 
-          @memory.replace(content)
+          @memory.replace(input['content'])
           'Memory replaced.'
         else
-          "Error: unknown action '#{action}'"
+          "Error: unknown action '#{input['action']}'"
         end
       end
     end
