@@ -10,7 +10,7 @@ module Akaitsume
                    provider: nil, tools: nil, memory: nil, logger: nil)
       @name     = name
       @role     = role
-      @config   = config
+      @config   = config.ensure_directories!
       @provider = provider || Provider::Anthropic.new(api_key: config.api_key)
       @memory   = memory || Memory.build(config, agent_name: name)
       @tools    = tools || Tool::Registry.default_for(config, memory: @memory)

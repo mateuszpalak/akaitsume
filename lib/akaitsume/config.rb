@@ -35,9 +35,12 @@ module Akaitsume
       @memory_backend = cfg[:memory_backend].to_s
       @db_path        = cfg[:db_path]
       @log_level      = cfg[:log_level]
+    end
 
+    def ensure_directories!
       FileUtils.mkdir_p(@workspace)
       FileUtils.mkdir_p(@memory_dir)
+      self
     end
   end
 end
