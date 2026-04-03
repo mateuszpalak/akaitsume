@@ -13,11 +13,13 @@ module Akaitsume
       memory_dir: Dir.home + '/.akaitsume/memory',
       memory_backend: 'file',
       db_path: Dir.home + '/.akaitsume/akaitsume.db',
-      log_level: 'info'
+      log_level: 'info',
+      tool_paths: []
     }.freeze
 
     attr_reader :model, :max_turns, :max_tokens, :workspace,
-                :memory_dir, :memory_backend, :db_path, :log_level, :api_key
+                :memory_dir, :memory_backend, :db_path, :log_level, :api_key,
+                :tool_paths
 
     def self.load(path: nil)
       file_cfg = path ? YAML.safe_load_file(path, symbolize_names: true) : {}
@@ -35,6 +37,7 @@ module Akaitsume
       @memory_backend = cfg[:memory_backend].to_s
       @db_path        = cfg[:db_path]
       @log_level      = cfg[:log_level]
+      @tool_paths     = Array(cfg[:tool_paths])
     end
 
     def ensure_directories!
