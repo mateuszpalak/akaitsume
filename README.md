@@ -1,11 +1,12 @@
 # Akaitsume
 
-赤い爪 — A sharp, extensible AI agent framework for Ruby built on the Anthropic SDK.
+赤い爪 — A sharp, extensible AI agent framework for Ruby.
 
 ## Features
 
 - **Provider abstraction** — swap LLM backends without changing agent code (Anthropic built-in, OpenAI/Ollama ready to add)
-- **Tool system** — trait-based tools with auto-discovery: Bash, Files, HTTP, Memory
+- **Tool system** — trait-based tools with auto-discovery and external plugin loading
+- **Security** — dangerous command guard (Bash), SSRF protection (HTTP), path traversal prevention (Files)
 - **Memory backends** — FileStore (default) or SQLite, switchable via config
 - **Session management** — conversation continuity with token/cost tracking
 - **Hooks** — `before_tool`, `after_tool`, `on_response`, `on_error` callbacks
@@ -28,7 +29,8 @@ gem install akaitsume
 ## Quick start
 
 ```sh
-export ANTHROPIC_API_KEY=sk-...
+# Set your API key (or use .env file with dotenv)
+export ANTHROPIC_API_KEY=sk-ant-...
 
 # Single prompt
 akaitsume run "list files in the current directory"
@@ -76,20 +78,22 @@ Config is loaded from YAML, environment variables, or passed directly:
 
 ```yaml
 # config/agent.yml
-model: claude-sonnet-4-20250514
+model: claude-haiku-4-5-20251001
 max_turns: 20
 max_tokens: 8096
 workspace: ~/.akaitsume/workspace
-memory_backend: file        # or "sqlite"
+memory_backend: file          # or "sqlite"
 db_path: ~/.akaitsume/akaitsume.db
 log_level: info
+tool_paths:                   # external plugin directories
+  - ~/.akaitsume/plugins
 ```
 
 ```sh
 akaitsume run "hello" --config config/agent.yml
 ```
 
-Environment: `ANTHROPIC_API_KEY` is required.
+Environment: `ANTHROPIC_API_KEY` is required. Use a `.env` file with `dotenv` for convenience.
 
 ## Architecture
 
@@ -108,49 +112,63 @@ lib/akaitsume/
 │
 ├── provider/
 │   ├── base.rb           # Provider contract (module)
-│   ├── response.rb       # Unified response value object
+│   ├── response.rb       # Immutable response (Data.define)
 │   └── anthropic.rb      # Anthropic SDK wrapper
 │
 ├── tool/
 │   ├── base.rb           # Tool contract (module)
-│   ├── registry.rb       # Tool registry
-│   ├── bash.rb           # Shell execution
+│   ├── registry.rb       # Auto-discovery + plugin loading
+│   ├── bash.rb           # Shell execution (with dangerous command guard)
 │   ├── files.rb          # File operations (with path traversal protection)
-│   ├── http.rb           # HTTP requests via Faraday
+│   ├── http.rb           # HTTP requests (with SSRF protection)
 │   └── memory_tool.rb    # LLM-facing memory read/write/search
 │
 └── memory/
-    ├── base.rb           # Memory contract (module)
+    ├── base.rb           # Memory contract (module) + Memory.build factory
     ├── file_store.rb     # Markdown file backend (default)
     └── sqlite_store.rb   # SQLite backend (opt-in)
 ```
 
 ## Extending
 
-### Custom tool
+### Custom tool (plugin)
+
+Drop a `.rb` file in a `tool_paths` directory:
 
 ```ruby
-class MyTool
-  include Akaitsume::Tool::Base
+# ~/.akaitsume/plugins/weather.rb
+module Akaitsume
+  module Tool
+    class Weather
+      include Base
 
-  tool_name   'weather'
-  description 'Get current weather for a city'
-  input_schema({
-    type: 'object',
-    properties: {
-      city: { type: 'string', description: 'City name' }
-    },
-    required: ['city']
-  })
+      tool_name   'weather'
+      description 'Get current weather for a city'
+      input_schema({
+        type: 'object',
+        properties: {
+          city: { type: 'string', description: 'City name' }
+        },
+        required: ['city']
+      })
 
-  def call(input)
-    # Your implementation here
-    "Weather in #{input['city']}: 22C, sunny"
+      def call(input)
+        "Weather in #{input['city']}: 22C, sunny"
+      end
+    end
   end
 end
+```
 
-# Register it
-agent = Akaitsume::Agent.new
+```yaml
+# config/agent.yml
+tool_paths:
+  - ~/.akaitsume/plugins
+```
+
+Or register manually:
+
+```ruby
 registry = Akaitsume::Tool::Registry.new
 registry.register(MyTool)
 agent = Akaitsume::Agent.new(tools: registry)
@@ -168,7 +186,7 @@ class OllamaProvider
     # Call Ollama API, return Provider::Response
     Akaitsume::Provider::Response.new(
       content: [...],
-      stop_reason: 'end_turn',
+      stop_reason: :end_turn,
       model: model,
       usage: { input_tokens: 0, output_tokens: 0 }
     )
@@ -202,6 +220,7 @@ agent = Akaitsume::Agent.new(memory: RedisStore.new)
 | `faraday` | HTTP tool |
 | `sqlite3` | SQLite memory backend |
 | `thor` | CLI framework |
+| `dotenv` | `.env` file loading |
 
 ## License
 
