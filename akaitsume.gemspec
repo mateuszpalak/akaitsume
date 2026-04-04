@@ -6,11 +6,11 @@ Gem::Specification.new do |s|
   s.name        = 'akaitsume'
   s.version     = Akaitsume::VERSION
   s.summary     = '赤い爪 — A sharp, extensible AI agent for Ruby'
-  s.description = 'Modular AI agent framework built on the Anthropic SDK for Ruby'
+  s.description = 'Modular AI agent framework for Ruby'
   s.authors     = ['Mateusz Palak']
   s.license     = 'MIT'
 
-  s.required_ruby_version = '>= 3.2'
+  s.required_ruby_version = '>= 4.0'
 
   s.files = Dir['lib/**/*', 'bin/*', 'config/**/*', 'docs/**/*', 'README.md', 'LICENSE']
   s.executables = ['akaitsume']
