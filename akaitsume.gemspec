@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.authors     = ['Mateusz Palak']
   s.license     = 'MIT'
 
-  s.required_ruby_version = '>= 4.0'
+  s.required_ruby_version = '>= 3.2'
 
   s.files = Dir['lib/**/*', 'bin/*', 'config/**/*', 'docs/**/*', 'README.md', 'LICENSE']
   s.executables = ['akaitsume']
@@ -23,6 +23,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'thor',       '>= 1.0'
   s.add_dependency 'zeitwerk',   '>= 2.6'
 
-  s.add_development_dependency 'rspec', '>= 3.12'
+  s.add_development_dependency 'minitest', '>= 5.20'
+  s.add_development_dependency 'minitest-mock'
+  s.add_development_dependency 'rake'
   s.add_development_dependency 'rubocop'
 end

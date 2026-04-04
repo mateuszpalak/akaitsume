@@ -1,1 +1,10 @@
 inherit_from: .rubocop_todo.yml
+
+# Test files use describe/it blocks which are naturally long
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*'
+
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - 'test/**/*'
